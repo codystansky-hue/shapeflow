@@ -13,18 +13,19 @@ const RockerEditor: React.FC = () => {
     return <div className="text-[var(--text-secondary)] p-4">No design loaded</div>;
   }
 
-  const { rocker, deckRocker, dimensions } = design;
+  const { rocker, deckRocker } = design;
 
-  // Compute nose and tail rocker from curve endpoints
   const rockerPts = rocker.controlPoints;
   const tailRocker = rockerPts.length > 0 ? rockerPts[0][1] : 0;
   const noseRocker = rockerPts.length > 0 ? rockerPts[rockerPts.length - 1][1] : 0;
 
-  // Find max rocker value for Y range
-  const allY = rockerPts.map((p) => p[1]);
-  const deckY = deckRocker.controlPoints.map((p) => p[1]);
-  const maxY = Math.max(...allY, ...deckY, dimensions.thickness) * 1.3;
-  const minY = Math.min(...allY, ...deckY, 0) - 5;
+  // Y range covers both rocker and deck rocker values (in mm)
+  const allY = [
+    ...rockerPts.map((p) => p[1]),
+    ...deckRocker.controlPoints.map((p) => p[1]),
+  ];
+  const minY = Math.min(...allY, 0) - 5;
+  const maxY = Math.max(...allY) * 1.2;
 
   const handleRockerChange = (newPoints: number[][]) => {
     const prevPoints = rocker.controlPoints.map((p) => [...p]);
@@ -59,9 +60,9 @@ const RockerEditor: React.FC = () => {
         onChange={handleRockerChange}
         width={480}
         height={240}
-        xLabel="Length (mm)"
+        xLabel="Position (tail → nose)"
         yLabel="Rocker (mm)"
-        xRange={[0, dimensions.length]}
+        xRange={[0, 1]}
         yRange={[minY, maxY]}
         color="#0ea5e9"
       />
@@ -71,9 +72,9 @@ const RockerEditor: React.FC = () => {
         onChange={handleDeckRockerChange}
         width={480}
         height={200}
-        xLabel="Length (mm)"
-        yLabel="Deck (mm)"
-        xRange={[0, dimensions.length]}
+        xLabel="Position (tail → nose)"
+        yLabel="Deck height (mm)"
+        xRange={[0, 1]}
         yRange={[minY, maxY]}
         color="#67e8f9"
       />

@@ -3,8 +3,6 @@ import CurveEditor from '../common/CurveEditor';
 import { useBoardStore } from '@/store/boardStore';
 import { useUndoStore } from '@/store/undoStore';
 
-const STATIONS = [0.25, 0.5, 0.75];
-
 const CrossSectionEditor: React.FC = () => {
   const design = useBoardStore((s) => s.design);
   const updateCrossSection = useBoardStore((s) => s.updateCrossSection);
@@ -15,10 +13,8 @@ const CrossSectionEditor: React.FC = () => {
     return <div className="text-[var(--text-secondary)] p-4">No design loaded</div>;
   }
 
-  const { crossSections, dimensions } = design;
-  const halfWidth = dimensions.width / 2;
+  const { crossSections } = design;
 
-  // Find the cross-section closest to the selected station, or use index directly
   const sectionIndex = activeStation < crossSections.length ? activeStation : 0;
   const section = crossSections[sectionIndex];
 
@@ -62,15 +58,19 @@ const CrossSectionEditor: React.FC = () => {
         ))}
       </div>
 
+      <p className="text-[10px] text-[var(--text-secondary)]">
+        Half cross-section (mirrored). X = width, Y = height, both normalized 0-1.
+      </p>
+
       <CurveEditor
         curve={section.curve}
         onChange={handleChange}
         width={480}
         height={320}
-        xLabel="Width (mm)"
-        yLabel="Height (mm)"
-        xRange={[0, halfWidth * 1.2]}
-        yRange={[-dimensions.thickness * 0.3, dimensions.thickness * 1.2]}
+        xLabel="Half-width"
+        yLabel="Height"
+        xRange={[-0.1, 1.1]}
+        yRange={[-0.1, 1.1]}
         symmetric
         color="#0ea5e9"
       />

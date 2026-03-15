@@ -31,15 +31,18 @@ const ThicknessEditor: React.FC = () => {
           Max: {dimensions.thickness.toFixed(1)}mm
         </span>
       </div>
+      <p className="text-[10px] text-[var(--text-secondary)]">
+        Thickness distribution along the board (normalized 0-1 scale, multiplied by max thickness).
+      </p>
       <CurveEditor
         curve={thickness}
         onChange={handleChange}
         width={480}
         height={280}
-        xLabel="Length (mm)"
-        yLabel="Thickness (mm)"
-        xRange={[0, dimensions.length]}
-        yRange={[0, dimensions.thickness * 1.3]}
+        xLabel="Position (tail → nose)"
+        yLabel="Thickness factor"
+        xRange={[0, 1]}
+        yRange={[-0.1, 1.3]}
         color="#0ea5e9"
       />
     </div>

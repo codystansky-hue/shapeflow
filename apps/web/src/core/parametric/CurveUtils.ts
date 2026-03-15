@@ -14,22 +14,22 @@ export type VerbNurbsCurve = InstanceType<typeof verb.geom.NurbsCurve>;
 /**
  * Create a verb NurbsCurve from our NURBSCurveData format.
  *
- * verb expects homogeneous control points. For 2D input [x, y] we produce
- * [x, y, 0, w]. For 3D input [x, y, z] we produce [x, y, z, w].
+ * verb-nurbs-web API: NurbsCurve.byKnotsControlPointsWeights(degree, knots, controlPoints, weights?)
+ * Control points are 3D [x, y, z]. For 2D input [x, y] we append z=0.
  */
 export function createNurbsCurve(data: NURBSCurveData): VerbNurbsCurve {
-  const weights = data.weights ?? data.controlPoints.map(() => 1.0);
-
-  const homogeneous = data.controlPoints.map((pt, i) => {
-    const w = weights[i];
-    if (pt.length === 2) {
-      return [pt[0], pt[1], 0, w];
-    }
-    return [pt[0], pt[1], pt[2], w];
+  const controlPoints3D = data.controlPoints.map((pt) => {
+    if (pt.length === 2) return [pt[0], pt[1], 0];
+    return [pt[0], pt[1], pt[2]];
   });
 
-  return new verb.geom.NurbsCurve(
-    new verb.geom.NurbsCurveData(data.degree, data.knots, homogeneous),
+  const weights = data.weights ?? data.controlPoints.map(() => 1.0);
+
+  return verb.geom.NurbsCurve.byKnotsControlPointsWeights(
+    data.degree,
+    data.knots,
+    controlPoints3D,
+    weights,
   );
 }
 
@@ -53,10 +53,6 @@ export function sampleCurve(
 /**
  * Generate a uniform (clamped) knot vector for the given number of control
  * points and degree.
- *
- * The resulting vector has (numControlPoints + degree + 1) entries, is clamped
- * at both ends (first/last degree+1 knots repeated), and uniform in between,
- * normalised to the [0, 1] range.
  */
 export function generateUniformKnots(
   numControlPoints: number,
@@ -84,10 +80,6 @@ export function generateUniformKnots(
  *
  * Returns an array of 2D points [y, z] describing the half cross-section
  * (to be mirrored for the full profile).
- *
- * When t falls between two defined sections we blend their sampled shapes
- * linearly. When t is outside the defined range we clamp to the nearest
- * section.
  */
 export function interpolateCrossSections(
   sections: CrossSectionData[],
@@ -97,7 +89,6 @@ export function interpolateCrossSections(
   numPoints: number = 20,
 ): number[][] {
   if (sections.length === 0) {
-    // Fallback: simple elliptical half-section
     return generateEllipticalSection(width, thickness, numPoints);
   }
 
@@ -168,7 +159,6 @@ export function generateEllipticalSection(
   const points: number[][] = [];
 
   for (let i = 0; i < numPoints; i++) {
-    // Angle from 0 (bottom center) to PI (top center)
     const angle = (i / (numPoints - 1)) * Math.PI;
     const y = halfWidth * Math.sin(angle);
     const z = (thickness / 2) * (1 - Math.cos(angle));

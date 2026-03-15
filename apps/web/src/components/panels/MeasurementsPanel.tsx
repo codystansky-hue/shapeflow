@@ -1,8 +1,32 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useBoardStore } from '@/store/boardStore';
+import { BoardModel } from '@/core/parametric/BoardModel';
 
 const MeasurementsPanel: React.FC = () => {
   const design = useBoardStore((s) => s.design);
+
+  const measurements = useMemo(() => {
+    if (!design) return null;
+    try {
+      const model = BoardModel.fromDesignData(design);
+      const length = design.dimensions.length;
+
+      // Width at 12" (304.8mm) from nose and tail
+      const offset12 = 304.8 / length;
+      const widthAtTail12 = model.getWidthAt(offset12) * 2;
+      const widthAtNose12 = model.getWidthAt(1 - offset12) * 2;
+
+      return {
+        noseRocker: model.getRockerAt(1),
+        tailRocker: model.getRockerAt(0),
+        widthAtTail12,
+        widthAtNose12,
+        volume: model.getVolumeInLiters(),
+      };
+    } catch {
+      return null;
+    }
+  }, [design]);
 
   if (!design) {
     return (
@@ -10,35 +34,7 @@ const MeasurementsPanel: React.FC = () => {
     );
   }
 
-  const { dimensions, rocker, computedVolume } = design;
-  const rockerPts = rocker.controlPoints;
-
-  // Compute nose and tail rocker from endpoints
-  const tailRocker = rockerPts.length > 0 ? rockerPts[0][1] : 0;
-  const noseRocker = rockerPts.length > 0 ? rockerPts[rockerPts.length - 1][1] : 0;
-
-  // Width at 12" (304.8mm) from nose and tail - simplified interpolation
-  const outlinePts = design.outline.controlPoints;
-  const widthAtOffset = (offset: number): string => {
-    // Find the outline point closest to the offset from each end
-    const targetFromTail = offset;
-    const targetFromNose = dimensions.length - offset;
-    let wTail = 0;
-    let wNose = 0;
-    for (const p of outlinePts) {
-      if (Math.abs(p[0] - targetFromTail) < Math.abs(wTail - targetFromTail)) {
-        wTail = p[1];
-      }
-    }
-    for (const p of outlinePts) {
-      if (Math.abs(p[0] - targetFromNose) < Math.abs(wNose - targetFromNose)) {
-        wNose = p[1];
-      }
-    }
-    return `${(wTail * 2).toFixed(1)} / ${(wNose * 2).toFixed(1)}`;
-  };
-
-  const volume = computedVolume ?? 0;
+  const { dimensions } = design;
 
   return (
     <div className="flex flex-col gap-1 p-4">
@@ -52,18 +48,31 @@ const MeasurementsPanel: React.FC = () => {
 
       <div className="my-2 border-t border-[var(--border)]" />
 
-      <MeasurementRow label="Nose Rocker" value={`${noseRocker.toFixed(1)} mm`} />
-      <MeasurementRow label="Tail Rocker" value={`${tailRocker.toFixed(1)} mm`} />
+      <MeasurementRow
+        label="Nose Rocker"
+        value={measurements ? `${measurements.noseRocker.toFixed(1)} mm` : '--'}
+      />
+      <MeasurementRow
+        label="Tail Rocker"
+        value={measurements ? `${measurements.tailRocker.toFixed(1)} mm` : '--'}
+      />
 
       <div className="my-2 border-t border-[var(--border)]" />
 
-      <MeasurementRow label="Width @ 12&quot;" value={widthAtOffset(304.8) + ' mm'} />
+      <MeasurementRow
+        label="Width @ 12&quot; tail"
+        value={measurements ? `${measurements.widthAtTail12.toFixed(1)} mm` : '--'}
+      />
+      <MeasurementRow
+        label="Width @ 12&quot; nose"
+        value={measurements ? `${measurements.widthAtNose12.toFixed(1)} mm` : '--'}
+      />
 
       <div className="my-2 border-t border-[var(--border)]" />
 
       <MeasurementRow
         label="Volume"
-        value={volume > 0 ? `${volume.toFixed(1)} L` : 'Calculating...'}
+        value={measurements ? `${measurements.volume.toFixed(1)} L` : 'Calculating...'}
       />
     </div>
   );
