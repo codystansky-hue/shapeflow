@@ -16,7 +16,7 @@ import supTemplate from '@/templates/sup.json';
 import type { BoardDesignData } from '@shapeflow/shared';
 
 const templateMap: Record<string, { data: BoardDesignData; label: string; type: string }> = {
-  shortboard: { data: shortboardTemplate, label: 'Shortboard', type: 'shortboard' },
+  shortboard: { data: shortboardTemplate as BoardDesignData, label: 'Shortboard', type: 'shortboard' },
   fish: { data: fishTemplate as BoardDesignData, label: 'Fish', type: 'fish' },
   longboard: { data: longboardTemplate as BoardDesignData, label: 'Longboard', type: 'longboard' },
   sup: { data: supTemplate as BoardDesignData, label: 'SUP', type: 'sup' },
@@ -58,7 +58,7 @@ const App: React.FC = () => {
 
   // Load default template on mount
   useEffect(() => {
-    loadDesign(shortboardTemplate, {
+    loadDesign(shortboardTemplate as BoardDesignData, {
       name: 'My Shortboard',
       boardType: 'shortboard',
     });
