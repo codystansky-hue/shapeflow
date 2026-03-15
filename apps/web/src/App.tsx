@@ -9,7 +9,7 @@ import CrossSectionEditor from '@/components/editors/CrossSectionEditor';
 import Viewport3D from '@/components/viewport/Viewport3D';
 import MeasurementsPanel from '@/components/panels/MeasurementsPanel';
 import PropertiesPanel from '@/components/panels/PropertiesPanel';
-import { shortboardTemplate } from '@/templates/shortboard';
+import shortboardTemplate from '@/templates/shortboard.json';
 import fishTemplate from '@/templates/fish.json';
 import longboardTemplate from '@/templates/longboard.json';
 import supTemplate from '@/templates/sup.json';
