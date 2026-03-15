@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:22-alpine
 WORKDIR /app
 
 # Copy workspace root
@@ -13,15 +13,8 @@ RUN npm ci
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
 
-# Build
-RUN npm run build -w apps/api
-
-# Production image
-FROM node:22-alpine
-WORKDIR /app
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
 EXPOSE 3001
 ENV NODE_ENV=production
-CMD ["node", "dist/index.js"]
+
+# Run directly with tsx (no build step needed)
+CMD ["npx", "tsx", "apps/api/src/index.ts"]
