@@ -172,11 +172,13 @@ const CurveEditor: React.FC<CurveEditorProps> = ({
     ctx.font = '11px Inter, sans-serif';
     ctx.textAlign = 'center';
     for (let x = Math.ceil(xRange[0] / xStep) * xStep; x <= xRange[1]; x += xStep) {
-      ctx.fillText(x.toFixed(0), toCanvasX(x), padding.top + plotH + 16);
+      const label = xStep < 1 ? x.toFixed(Math.max(0, -Math.floor(Math.log10(xStep)))) : x.toFixed(0);
+      ctx.fillText(label, toCanvasX(x), padding.top + plotH + 16);
     }
     ctx.textAlign = 'right';
     for (let y = Math.ceil(yRange[0] / yStep) * yStep; y <= yRange[1]; y += yStep) {
-      ctx.fillText(y.toFixed(1), padding.left - 6, toCanvasY(y) + 4);
+      const label = yStep < 1 ? y.toFixed(Math.max(0, -Math.floor(Math.log10(yStep)))) : y.toFixed(0);
+      ctx.fillText(label, padding.left - 6, toCanvasY(y) + 4);
     }
 
     // Axis titles
