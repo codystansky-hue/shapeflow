@@ -102,6 +102,7 @@ const CurveEditor: React.FC<CurveEditorProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [localPoints, setLocalPoints] = useState<number[][]>(curve.controlPoints);
 
   const padding = { top: 20, right: 20, bottom: 40, left: 50 };
@@ -236,13 +237,46 @@ const CurveEditor: React.FC<CurveEditorProps> = ({
       const cx = toCanvasX(localPoints[i][0]);
       const cy = toCanvasY(localPoints[i][1]);
 
+      const isActive = dragIndex === i;
+      const isHovered = hoverIndex === i && dragIndex === null;
+      const radius = isActive ? 10 : isHovered ? 9 : 8;
+      const fillColor = isActive ? '#38bdf8' : isHovered ? '#7dd3fc' : color;
+
       ctx.beginPath();
-      ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-      ctx.fillStyle = dragIndex === i ? '#38bdf8' : color;
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = fillColor;
       ctx.fill();
       ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = isActive || isHovered ? 2 : 1.5;
       ctx.stroke();
+
+      // Point index label
+      ctx.font = '9px monospace';
+      ctx.fillStyle = '#8892a4';
+      ctx.textAlign = 'left';
+      ctx.fillText(String(i), cx + 12, cy - 4);
+    }
+
+    // Coordinate readout tooltip
+    const activeIdx = dragIndex ?? hoverIndex;
+    if (activeIdx !== null) {
+      const pt = localPoints[activeIdx];
+      const label = `P${activeIdx}: (${pt[0].toFixed(3)}, ${pt[1].toFixed(3)})`;
+      const tx = toCanvasX(pt[0]) + 16;
+      const ty = toCanvasY(pt[1]) - 16;
+      ctx.font = '11px Inter, monospace';
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.beginPath();
+      if ((ctx as any).roundRect) {
+        (ctx as any).roundRect(tx - 6, ty - 14, tw + 12, 20, 4);
+      } else {
+        ctx.rect(tx - 6, ty - 14, tw + 12, 20);
+      }
+      ctx.fill();
+      ctx.fillStyle = '#e2e8f0';
+      ctx.textAlign = 'left';
+      ctx.fillText(label, tx, ty);
     }
 
     // Plot border
@@ -251,7 +285,7 @@ const CurveEditor: React.FC<CurveEditorProps> = ({
     ctx.strokeRect(padding.left, padding.top, plotW, plotH);
   }, [
     width, height, localPoints, curve, xRange, yRange, color, backgroundColor,
-    symmetric, dragIndex, toCanvasX, toCanvasY, plotW, plotH, xLabel, yLabel,
+    symmetric, dragIndex, hoverIndex, toCanvasX, toCanvasY, plotW, plotH, xLabel, yLabel,
   ]);
 
   const getMousePos = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -275,14 +309,29 @@ const CurveEditor: React.FC<CurveEditorProps> = ({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (dragIndex === null) return;
+    if (dragIndex !== null) {
+      const { x, y } = getMousePos(e);
+      const newX = Math.max(xRange[0], Math.min(xRange[1], fromCanvasX(x)));
+      const newY = Math.max(yRange[0], Math.min(yRange[1], fromCanvasY(y)));
+      const newPoints = localPoints.map((p, i) =>
+        i === dragIndex ? [newX, newY] : [...p],
+      );
+      setLocalPoints(newPoints);
+      return;
+    }
+
+    // Hover detection
     const { x, y } = getMousePos(e);
-    const newX = Math.max(xRange[0], Math.min(xRange[1], fromCanvasX(x)));
-    const newY = Math.max(yRange[0], Math.min(yRange[1], fromCanvasY(y)));
-    const newPoints = localPoints.map((p, i) =>
-      i === dragIndex ? [newX, newY] : [...p],
-    );
-    setLocalPoints(newPoints);
+    let found: number | null = null;
+    for (let i = 0; i < localPoints.length; i++) {
+      const cx = toCanvasX(localPoints[i][0]);
+      const cy = toCanvasY(localPoints[i][1]);
+      if (Math.sqrt((x - cx) ** 2 + (y - cy) ** 2) <= 12) {
+        found = i;
+        break;
+      }
+    }
+    setHoverIndex(found);
   };
 
   const handleMouseUp = () => {
@@ -290,14 +339,18 @@ const CurveEditor: React.FC<CurveEditorProps> = ({
       onChange(localPoints);
       setDragIndex(null);
     }
+    setHoverIndex(null);
   };
+
+  const cursorStyle = dragIndex !== null ? 'grabbing' : hoverIndex !== null ? 'grab' : 'crosshair';
 
   return (
     <canvas
       ref={canvasRef}
       width={width}
       height={height}
-      className="rounded-lg cursor-crosshair"
+      style={{ cursor: cursorStyle }}
+      className="rounded-lg"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
