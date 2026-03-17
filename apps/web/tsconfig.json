@@ -14,7 +14,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@shapeflow/shared": ["../../packages/shared/src"]
     }
   },
   "include": ["src"]

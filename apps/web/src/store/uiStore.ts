@@ -9,6 +9,7 @@ interface UIState {
   activeView: ActiveView;
   showMeasurements: boolean;
   showGrid: boolean;
+  showWireframe: boolean;
   selectedControlPoint: number | null;
   ghostBoard: BoardDesignData | null;
 
@@ -16,6 +17,7 @@ interface UIState {
   setActiveView: (view: ActiveView) => void;
   toggleMeasurements: () => void;
   toggleGrid: () => void;
+  toggleWireframe: () => void;
   setSelectedControlPoint: (index: number | null) => void;
   setGhostBoard: (board: BoardDesignData | null) => void;
 }
@@ -25,6 +27,7 @@ export const useUIStore = create<UIState>((set) => ({
   activeView: 'perspective',
   showMeasurements: true,
   showGrid: true,
+  showWireframe: false,
   selectedControlPoint: null,
   ghostBoard: null,
 
@@ -32,6 +35,7 @@ export const useUIStore = create<UIState>((set) => ({
   setActiveView: (view) => set({ activeView: view }),
   toggleMeasurements: () => set((s) => ({ showMeasurements: !s.showMeasurements })),
   toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
+  toggleWireframe: () => set((s) => ({ showWireframe: !s.showWireframe })),
   setSelectedControlPoint: (index) => set({ selectedControlPoint: index }),
   setGhostBoard: (board) => set({ ghostBoard: board }),
 }));

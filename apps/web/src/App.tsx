@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { useBoardStore } from '@/store/boardStore';
 import { useUndoStore } from '@/store/undoStore';
 import { useUIStore } from '@/store/uiStore';
@@ -14,6 +14,8 @@ import fishTemplate from '@/templates/fish.json';
 import longboardTemplate from '@/templates/longboard.json';
 import supTemplate from '@/templates/sup.json';
 import type { BoardDesignData } from '@shapeflow/shared';
+
+const BoardPreview3D = lazy(() => import('@/components/viewport/BoardPreview3D'));
 
 const templateMap: Record<string, { data: BoardDesignData; label: string; type: string }> = {
   shortboard: { data: shortboardTemplate as BoardDesignData, label: 'Shortboard', type: 'shortboard' },
@@ -50,6 +52,8 @@ const App: React.FC = () => {
   const setActiveEditor = useUIStore((s) => s.setActiveEditor);
   const activeView = useUIStore((s) => s.activeView);
   const setActiveView = useUIStore((s) => s.setActiveView);
+  const showWireframe = useUIStore((s) => s.showWireframe);
+  const toggleWireframe = useUIStore((s) => s.toggleWireframe);
 
   const undo = useUndoStore((s) => s.undo);
   const redo = useUndoStore((s) => s.redo);
@@ -155,6 +159,14 @@ const App: React.FC = () => {
                 {v.label}
               </button>
             ))}
+            <button
+              onClick={toggleWireframe}
+              className={`px-3 py-1 text-xs transition-colors ${
+                showWireframe ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--border)]'
+              }`}
+            >
+              Wire
+            </button>
           </div>
 
           {/* Undo / Redo */}
@@ -206,9 +218,15 @@ const App: React.FC = () => {
           </div>
         </aside>
 
-        {/* Center - 3D Viewport */}
+        {/* Center - Viewport */}
         <main className="flex-1 overflow-hidden">
-          <Viewport3D />
+          {showWireframe ? (
+            <Suspense fallback={<div className="w-full h-full bg-[var(--bg-primary)]" />}>
+              <BoardPreview3D />
+            </Suspense>
+          ) : (
+            <Viewport3D />
+          )}
         </main>
 
         {/* Right Sidebar - Panels */}
