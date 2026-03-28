@@ -20,6 +20,10 @@ interface UIState {
   snapToGrid: boolean;
   /** Whether curvature combs are shown */
   showCurvature: boolean;
+  /** Persisted wireframe camera state */
+  wireframeAzimuth: number;
+  wireframeElevation: number;
+  wireframeZoom: number;
 
   setActiveEditor: (editor: ActiveEditor) => void;
   setActiveView: (view: ActiveView) => void;
@@ -32,6 +36,7 @@ interface UIState {
   setGuidelinePosition: (t: number) => void;
   toggleSnapToGrid: () => void;
   toggleCurvature: () => void;
+  setWireframeCamera: (az: number, el: number, zoom: number) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -46,6 +51,9 @@ export const useUIStore = create<UIState>((set) => ({
   guidelinePosition: 0.5,
   snapToGrid: false,
   showCurvature: false,
+  wireframeAzimuth: 0.8,
+  wireframeElevation: 0.3,
+  wireframeZoom: 1.2,
 
   setActiveEditor: (editor) => set({ activeEditor: editor }),
   setActiveView: (view) => set({ activeView: view }),
@@ -58,4 +66,5 @@ export const useUIStore = create<UIState>((set) => ({
   setGuidelinePosition: (t) => set({ guidelinePosition: Math.max(0, Math.min(1, t)) }),
   toggleSnapToGrid: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
   toggleCurvature: () => set((s) => ({ showCurvature: !s.showCurvature })),
+  setWireframeCamera: (az, el, zoom) => set({ wireframeAzimuth: az, wireframeElevation: el, wireframeZoom: zoom }),
 }));

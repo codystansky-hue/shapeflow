@@ -1,6 +1,7 @@
 'use client';
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useBoardStore } from '@/store/boardStore';
+import { useUIStore } from '@/store/uiStore';
 import { BoardModel } from '@/core/parametric/BoardModel';
 
 interface Point3D { x: number; y: number; z: number }
@@ -33,10 +34,14 @@ const BoardPreview3D: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { design } = useBoardStore();
-  
-  const [azimuth, setAzimuth] = useState<number>(VIEW_PRESETS.iso.az);
-  const [elevation, setElevation] = useState<number>(VIEW_PRESETS.iso.el);
-  const [zoom, setZoom] = useState<number>(1.2);
+  const storedAz = useUIStore((s) => s.wireframeAzimuth);
+  const storedEl = useUIStore((s) => s.wireframeElevation);
+  const storedZoom = useUIStore((s) => s.wireframeZoom);
+  const setWireframeCamera = useUIStore((s) => s.setWireframeCamera);
+
+  const [azimuth, setAzimuth] = useState<number>(storedAz);
+  const [elevation, setElevation] = useState<number>(storedEl);
+  const [zoom, setZoom] = useState<number>(storedZoom);
   const [isDragging, setIsDragging] = useState(false);
   const lastMouse = useRef({ x: 0, y: 0 });
 
@@ -206,10 +211,15 @@ const BoardPreview3D: React.FC = () => {
     lastMouse.current = { x: e.clientX, y: e.clientY };
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setWireframeCamera(azimuth, elevation, zoom);
+  };
 
   const handleWheel = (e: React.WheelEvent) => {
-    setZoom(z => clamp(0.15, 8, z * Math.pow(0.999, e.deltaY)));
+    const nextZoom = clamp(0.15, 8, zoom * Math.pow(0.999, e.deltaY));
+    setZoom(nextZoom);
+    setWireframeCamera(azimuth, elevation, nextZoom);
   };
 
   return (
@@ -228,7 +238,7 @@ const BoardPreview3D: React.FC = () => {
         {Object.entries(VIEW_PRESETS).map(([key, v]) => (
           <button
             key={key}
-            onClick={() => { setAzimuth(v.az); setElevation(v.el); }}
+            onClick={() => { setAzimuth(v.az); setElevation(v.el); setWireframeCamera(v.az, v.el, zoom); }}
             className="px-3 py-1 text-xs bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--border)] transition-colors"
           >
             {v.label}
