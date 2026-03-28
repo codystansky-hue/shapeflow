@@ -43,7 +43,7 @@ const BoardPreview3D: React.FC = () => {
   const sections = useMemo(() => {
     if (!design) return null;
     const model = BoardModel.fromDesignData(design);
-    const N = 20, RING = 16, half = RING / 2;
+    const N = 40, RING = 32, half = RING / 2;
     const cx = model.length / 2;
     const result: { ring: Point3D[]; t: number }[] = [];
 

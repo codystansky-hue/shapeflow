@@ -17,8 +17,8 @@ export interface LoftOptions {
 }
 
 const DEFAULT_OPTIONS: Required<LoftOptions> = {
-  stations: 50,
-  ringPoints: 24,
+  stations: 100,
+  ringPoints: 48,
 };
 
 /**

@@ -1,9 +1,11 @@
 import React, { useMemo } from 'react';
 import { useBoardStore } from '@/store/boardStore';
+import { useUIStore } from '@/store/uiStore';
 import { BoardModel } from '@/core/parametric/BoardModel';
 
 const MeasurementsPanel: React.FC = () => {
   const design = useBoardStore((s) => s.design);
+  const guidelinePosition = useUIStore((s) => s.guidelinePosition);
 
   const measurements = useMemo(() => {
     if (!design) return null;
@@ -27,6 +29,24 @@ const MeasurementsPanel: React.FC = () => {
       return null;
     }
   }, [design]);
+
+  const guidelineMeasurements = useMemo(() => {
+    if (!design) return null;
+    try {
+      const model = BoardModel.fromDesignData(design);
+      const t = guidelinePosition;
+      return {
+        position: t * design.dimensions.length,
+        width: model.getWidthAt(t) * 2,
+        thickness: model.getThicknessAt(t),
+        rocker: model.getRockerAt(t),
+        deckRocker: model.getDeckRockerAt(t),
+        area: model.getCrossSectionArea(t),
+      };
+    } catch {
+      return null;
+    }
+  }, [design, guidelinePosition]);
 
   if (!design) {
     return (
@@ -74,14 +94,48 @@ const MeasurementsPanel: React.FC = () => {
         label="Volume"
         value={measurements ? `${measurements.volume.toFixed(1)} L` : 'Calculating...'}
       />
+
+      {/* Guideline position measurements */}
+      {guidelineMeasurements && (
+        <>
+          <div className="my-2 border-t border-[var(--border)]" />
+          <h3 className="text-xs font-semibold text-[#ef4444] uppercase tracking-wider mb-1">
+            At {(guidelinePosition * 100).toFixed(0)}%
+          </h3>
+          <MeasurementRow
+            label="Position"
+            value={`${guidelineMeasurements.position.toFixed(0)} mm`}
+            highlight
+          />
+          <MeasurementRow
+            label="Width"
+            value={`${guidelineMeasurements.width.toFixed(1)} mm`}
+            highlight
+          />
+          <MeasurementRow
+            label="Thickness"
+            value={`${guidelineMeasurements.thickness.toFixed(1)} mm`}
+            highlight
+          />
+          <MeasurementRow
+            label="Rocker"
+            value={`${guidelineMeasurements.rocker.toFixed(1)} mm`}
+            highlight
+          />
+        </>
+      )}
     </div>
   );
 };
 
-const MeasurementRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+const MeasurementRow: React.FC<{ label: string; value: string; highlight?: boolean }> = ({
+  label,
+  value,
+  highlight,
+}) => (
   <div className="flex justify-between items-center py-0.5">
-    <span className="text-xs text-[var(--text-secondary)]">{label}</span>
-    <span className="text-sm font-mono text-[var(--text-primary)]">{value}</span>
+    <span className={`text-xs ${highlight ? 'text-[#fca5a5]' : 'text-[var(--text-secondary)]'}`}>{label}</span>
+    <span className={`text-sm font-mono ${highlight ? 'text-[#fca5a5]' : 'text-[var(--text-primary)]'}`}>{value}</span>
   </div>
 );
 

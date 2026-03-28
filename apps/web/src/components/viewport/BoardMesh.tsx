@@ -12,7 +12,7 @@ const BoardMesh: React.FC = () => {
 
     try {
       const model = BoardModel.fromDesignData(design);
-      return loftBoard(model);
+      return loftBoard(model, { stations: 100, ringPoints: 48 });
     } catch (e) {
       console.warn('Lofter failed, using placeholder:', e);
       const { length, width, thickness } = design.dimensions;
