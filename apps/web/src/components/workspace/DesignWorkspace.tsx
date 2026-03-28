@@ -9,7 +9,7 @@
  * A red interactive guideline syncs across views, and the right panel shows
  * measurements at that position.
  */
-import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import CurveEditor from '@/components/common/CurveEditor';
 import { useBoardStore } from '@/store/boardStore';
 import { useUIStore } from '@/store/uiStore';
@@ -26,22 +26,22 @@ const DesignWorkspace: React.FC = () => {
   const execute = useUndoStore((s) => s.execute);
   const guidelinePosition = useUIStore((s) => s.guidelinePosition);
 
-  if (!design) {
-    return <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)]">No design loaded</div>;
-  }
+  // Derived values (all safe with design === null)
+  const outline = design?.outline;
+  const rocker = design?.rocker;
+  const deckRocker = design?.deckRocker;
+  const thickness = design?.thickness;
+  const crossSections = design?.crossSections;
+  const dimensions = design?.dimensions;
 
-  const { outline, rocker, deckRocker, thickness, crossSections, dimensions } = design;
+  const rockerYRange = useMemo(() => {
+    if (!rocker || !deckRocker) return { min: -5, max: 50 };
+    const allY = [...rocker.controlPoints.map(p => p[1]), ...deckRocker.controlPoints.map(p => p[1])];
+    return { min: Math.min(...allY, 0) - 5, max: Math.max(...allY) * 1.2 };
+  }, [rocker, deckRocker]);
 
-  // Rocker y-range
-  const rockerPts = rocker.controlPoints;
-  const deckPts = deckRocker.controlPoints;
-  const allRockerY = [...rockerPts.map(p => p[1]), ...deckPts.map(p => p[1])];
-  const minRY = Math.min(...allRockerY, 0) - 5;
-  const maxRY = Math.max(...allRockerY) * 1.2;
-
-  // Find active cross-section near guideline
   const activeSectionIdx = useMemo(() => {
-    if (crossSections.length === 0) return 0;
+    if (!crossSections || crossSections.length === 0) return 0;
     let closest = 0;
     let closestDist = Infinity;
     for (let i = 0; i < crossSections.length; i++) {
@@ -54,28 +54,31 @@ const DesignWorkspace: React.FC = () => {
     return closest;
   }, [crossSections, guidelinePosition]);
 
-  const activeSection = crossSections[activeSectionIdx];
+  const activeSection = crossSections?.[activeSectionIdx] ?? null;
 
-  // Handlers with undo
   const handleOutlineChange = useCallback((newPoints: number[][]) => {
+    if (!outline) return;
     const prev = outline.controlPoints.map(p => [...p]);
     execute({ description: 'Update outline', execute: () => updateOutline(newPoints), undo: () => updateOutline(prev) });
-  }, [outline.controlPoints, execute, updateOutline]);
+  }, [outline, execute, updateOutline]);
 
   const handleRockerChange = useCallback((newPoints: number[][]) => {
+    if (!rocker) return;
     const prev = rocker.controlPoints.map(p => [...p]);
     execute({ description: 'Update rocker', execute: () => updateRocker(newPoints), undo: () => updateRocker(prev) });
-  }, [rocker.controlPoints, execute, updateRocker]);
+  }, [rocker, execute, updateRocker]);
 
   const handleDeckRockerChange = useCallback((newPoints: number[][]) => {
+    if (!deckRocker) return;
     const prev = deckRocker.controlPoints.map(p => [...p]);
     execute({ description: 'Update deck rocker', execute: () => updateDeckRocker(newPoints), undo: () => updateDeckRocker(prev) });
-  }, [deckRocker.controlPoints, execute, updateDeckRocker]);
+  }, [deckRocker, execute, updateDeckRocker]);
 
   const handleThicknessChange = useCallback((newPoints: number[][]) => {
+    if (!thickness) return;
     const prev = thickness.controlPoints.map(p => [...p]);
     execute({ description: 'Update thickness', execute: () => updateThickness(newPoints), undo: () => updateThickness(prev) });
-  }, [thickness.controlPoints, execute, updateThickness]);
+  }, [thickness, execute, updateThickness]);
 
   const handleCrossSectionChange = useCallback((newPoints: number[][]) => {
     if (!activeSection) return;
@@ -88,7 +91,6 @@ const DesignWorkspace: React.FC = () => {
     });
   }, [activeSection, activeSectionIdx, execute, updateCrossSection]);
 
-  // Guideline measurements
   const guidelineMeasurements = useMemo(() => {
     if (!design) return null;
     try {
@@ -99,12 +101,19 @@ const DesignWorkspace: React.FC = () => {
         thickness: model.getThicknessAt(t),
         rocker: model.getRockerAt(t),
         deckRocker: model.getDeckRockerAt(t),
-        position: t * dimensions.length,
+        position: t * design.dimensions.length,
       };
     } catch {
       return null;
     }
-  }, [design, guidelinePosition, dimensions.length]);
+  }, [design, guidelinePosition]);
+
+  // Early return AFTER all hooks
+  if (!design || !outline || !rocker || !deckRocker || !thickness || !crossSections || !dimensions) {
+    return <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)]">No design loaded</div>;
+  }
+
+  const rockerPts = rocker.controlPoints;
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]">
@@ -156,13 +165,12 @@ const DesignWorkspace: React.FC = () => {
             </div>
           </div>
           <div className="flex-1 min-h-0 flex flex-col">
-            {/* Rocker editor takes the space */}
             <div className="flex-[3] min-h-0">
               <CurveEditor
                 curve={rocker}
                 onChange={handleRockerChange}
                 xRange={[0, 1]}
-                yRange={[minRY, maxRY]}
+                yRange={[rockerYRange.min, rockerYRange.max]}
                 xLabel="Position (tail -> nose)"
                 yLabel="Rocker (mm)"
                 color="#0ea5e9"
@@ -170,7 +178,6 @@ const DesignWorkspace: React.FC = () => {
                 guidelineAxis="x"
               />
             </div>
-            {/* Thickness underneath */}
             <div className="border-t border-[var(--border)] shrink-0">
               <div className="flex items-center justify-between px-3 py-1 bg-[var(--bg-secondary)] border-b border-[var(--border)]">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Thickness</span>
@@ -233,7 +240,6 @@ const DesignWorkspace: React.FC = () => {
               </div>
             )}
 
-            {/* Guideline readout at bottom */}
             {guidelineMeasurements && (
               <div className="shrink-0 px-3 py-2 bg-[var(--bg-secondary)] border-t border-[var(--border)]">
                 <div className="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] mb-1">
