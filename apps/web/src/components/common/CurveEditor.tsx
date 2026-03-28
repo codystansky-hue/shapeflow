@@ -52,14 +52,25 @@ function deBoor(
   const n = controlPoints.length;
   if (n === 0) return null;
 
+  // Find knot span k where knots[k] <= t < knots[k+1]
+  // For the last knot value, use the last valid span
   let k = degree;
   for (let i = degree; i < n; i++) {
-    if (t >= knots[i] && t <= knots[i + 1]) {
-      k = i;
-      break;
+    if (i === n - 1) {
+      // Last valid span — include the right endpoint
+      if (t >= knots[i] && t <= knots[i + 1]) {
+        k = i;
+        break;
+      }
+    } else {
+      if (t >= knots[i] && t < knots[i + 1]) {
+        k = i;
+        break;
+      }
     }
   }
 
+  // Build weighted control points d[j] = P_{k-p+j} for j=0..p
   const d: number[][] = [];
   for (let i = 0; i <= degree; i++) {
     const idx = k - degree + i;
@@ -68,9 +79,11 @@ function deBoor(
     d.push([controlPoints[idx][0] * w, controlPoints[idx][1] * w, w]);
   }
 
+  // De Boor recursion
+  // alpha_{j,r} = (t - knots[k - p + j]) / (knots[k + 1 + j - r] - knots[k - p + j])
   for (let r = 1; r <= degree; r++) {
     for (let j = degree; j >= r; j--) {
-      const left = knots[k + 1 + j - degree];
+      const left = knots[k + j - degree];
       const right = knots[k + 1 + j - r];
       const denom = right - left;
       if (Math.abs(denom) < 1e-12) continue;
